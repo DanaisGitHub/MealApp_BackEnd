@@ -93,7 +93,7 @@ router.post('/signUp', async (req, res, next) => {
         }
     }
 });
-router.get('/login', async (req, res, next) => {
+router.post('/login', async (req, res, next) => {
     const email = req.body.email;
     const password = req.body.password;
     const refreshToken = (0, authUtils_1.issueJWT)({ id: email }, true);
@@ -120,39 +120,46 @@ router.post('/logout', exports.authMiddleware, async (req, res) => {
     await db.logout(decoded.id);
     res.clearCookie('accessToken', { maxAge: accessTime, httpOnly: true }); // if options are not exactly same as res.cookie then web browser won't clear
     res.clearCookie('refreshToken', { maxAge: refreshTime, httpOnly: true });
-    delete req.headers.authorization; // removes authorisation header
+    delete req.headers.authorization; // removes authorisation header // still need to check if this works
 });
 router.get('/protected', exports.authMiddleware, (req, res, next) => {
     console.log("Inside protected route here!");
     res.status(200).json({ success: true, msg: "You are successfully authenticated to this route!" });
 });
 router.post('/refresh_token', async (req, res) => {
-    const refreshToken = req.cookies.refreshToken || req.body.refreshToken; // assuming correct
-    console.log(refreshToken);
-    //each user can store a refresh token as part of user, if empty ie logged out, 
-    //even if they have a valid refresh token it won't work 
-    // if refresh tokens match access token is given
-    jsonwebtoken_2.default.verify(refreshToken, PUB_KEY, async (err, decoded) => {
-        if (err) {
-            console.log(err);
-            // somehow make the user login on front-end
-            return res.sendStatus(401).json({ err: err, message: `token incorrect` });
-        }
-        console.log(decoded);
-        const email = decoded.id;
-        const refreshTokenSame = await db.isRefreshTokenSame({
-            id: email,
-            refreshToken: refreshToken
+    try {
+        const refreshToken = req.cookies.refreshToken || req.body.refreshToken; // assuming correct
+        //console.log(refreshToken.token);
+        //each user can store a refresh token as part of user, if empty ie logged out, 
+        //even if they have a valid refresh token it won't work 
+        // if refresh tokens match access token is given
+        jsonwebtoken_2.default.verify(refreshToken.token, PUB_KEY, async (err, decoded) => {
+            if (err) {
+                console.log("We have an Error" + err);
+                // somehow make the user login on front-end
+                return res.sendStatus(401).json({ err: err, message: `token incorrect` });
+            }
+            const email = decoded.id;
+            //console.log(refreshToken.token)
+            //const  = decoded
+            const refreshTokenSame = await db.isRefreshTokenSame({
+                id: email,
+                refreshToken: refreshToken.token // is comeing back as undefined
+            });
+            if (!refreshTokenSame.result) {
+                res.sendStatus(401).json({ err: err, message: `token incorrect` });
+                return;
+            }
+            const accessToken = (0, authUtils_1.issueJWT)({ id: email });
+            req.headers.authorization = `Bearer ${accessToken}`;
+            res.cookie("accessToken", accessToken, { maxAge: refreshTime, httpOnly: true });
+            res.json({ accessToken: accessToken });
         });
-        if (!refreshTokenSame.result) {
-            res.sendStatus(401).json({ err: err, message: `token incorrect` });
-            return;
-        }
-        const accessToken = (0, authUtils_1.issueJWT)({ id: email });
-        req.headers.authorization = `Bearer ${accessToken}`;
-        res.cookie("accessToken", accessToken, { maxAge: refreshTime, httpOnly: true });
-        res.json({ accessToken: accessToken });
-    });
+    }
+    catch (err) {
+        console.log(err);
+        res.sendStatus(401).json({ err: err, message: `token incorrect` });
+    }
 });
 router.use(errorHandler);
 exports.default = router;

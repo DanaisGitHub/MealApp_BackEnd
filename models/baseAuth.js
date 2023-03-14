@@ -1,6 +1,7 @@
 "use strict";
+// The massive read lines on token.init() are not errors, works just fine but I don't know why it's doing that
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BaseModel = exports.initialize = exports.User = exports.sequelize = void 0;
+exports.BaseModel = exports.initialize = exports.initCustomFoodData = exports.initRecipeData = exports.initUserLogsModel = exports.User = exports.initUserModel = exports.sequelize = void 0;
 const sequelize_1 = require("sequelize");
 //connecting to database
 exports.sequelize = new sequelize_1.Sequelize('boilerplate', 'boilerplate', 'password', {
@@ -14,17 +15,111 @@ exports.sequelize = new sequelize_1.Sequelize('boilerplate', 'boilerplate', 'pas
         idle: 10000
     }
 });
-exports.User = exports.sequelize.define('Users', {
-    firstName: { type: sequelize_1.DataTypes.STRING, allowNull: false },
-    lastName: { type: sequelize_1.DataTypes.STRING, allowNull: false },
-    email: { type: sequelize_1.DataTypes.STRING, primaryKey: true },
-    password: { type: sequelize_1.DataTypes.STRING, allowNull: false },
-    refreshToken: { type: sequelize_1.DataTypes.STRING, allowNull: true }
-});
+class User extends sequelize_1.Model {
+}
+exports.User = User;
+const initUserModel = (sequelize) => {
+    User.init({
+        firstName: { type: sequelize_1.DataTypes.STRING, allowNull: false, },
+        lastName: { type: sequelize_1.DataTypes.STRING, allowNull: false, },
+        email: { type: sequelize_1.DataTypes.STRING, primaryKey: true, },
+        password: { type: sequelize_1.DataTypes.STRING, allowNull: false, },
+        refreshToken: { type: sequelize_1.DataTypes.STRING(2048), allowNull: true, }
+    }, {
+        tableName: 'Users',
+        sequelize,
+    });
+};
+exports.initUserModel = initUserModel;
+class UserLogs extends sequelize_1.Model {
+}
+const initUserLogsModel = (sequelize) => {
+    UserLogs.init({
+        date: { type: sequelize_1.DataTypes.DATE, allowNull: false },
+        email: { type: sequelize_1.DataTypes.STRING, primaryKey: true },
+        foodId: { type: sequelize_1.DataTypes.INTEGER, allowNull: false, },
+        foodIdMass: { type: sequelize_1.DataTypes.INTEGER, allowNull: false, },
+        customFoodId: { type: sequelize_1.DataTypes.INTEGER, allowNull: false, },
+        customFoodIdMass: { type: sequelize_1.DataTypes.INTEGER, allowNull: false, },
+        recipeId: { type: sequelize_1.DataTypes.INTEGER, allowNull: false, },
+        excerideId: { type: sequelize_1.DataTypes.INTEGER, allowNull: false, },
+        excerideIdTime: { type: sequelize_1.DataTypes.INTEGER, allowNull: false, },
+    }, {
+        tableName: "UserLogs", sequelize
+    });
+};
+exports.initUserLogsModel = initUserLogsModel;
+class Excerises extends sequelize_1.Model {
+}
+const initExcerisesModel = (sequelize) => {
+    Excerises.init({
+        excerideId: { type: sequelize_1.DataTypes.INTEGER, primaryKey: true },
+        excerideName: { type: sequelize_1.DataTypes.STRING, allowNull: false },
+        caloriesPerKgPerMin: { type: sequelize_1.DataTypes.INTEGER, allowNull: false },
+    }, { tableName: "Excerises", sequelize });
+};
+class FoodData extends sequelize_1.Model {
+}
+const initFoodDataModel = (sequelize) => {
+    FoodData.init({
+        foodId: { type: sequelize_1.DataTypes.INTEGER, primaryKey: true },
+        foodName: { type: sequelize_1.DataTypes.STRING, allowNull: false },
+        calories: { type: sequelize_1.DataTypes.INTEGER, allowNull: false },
+        sugar: { type: sequelize_1.DataTypes.INTEGER, allowNull: false },
+        carbohydrates: { type: sequelize_1.DataTypes.INTEGER, allowNull: false },
+        fat: { type: sequelize_1.DataTypes.INTEGER, allowNull: false },
+        protein: { type: sequelize_1.DataTypes.INTEGER, allowNull: false },
+        fibre: { type: sequelize_1.DataTypes.INTEGER, allowNull: false }
+    }, { tableName: "FoodData", sequelize });
+};
+class RecipeData extends sequelize_1.Model {
+}
+const initRecipeData = (sequelize) => {
+    RecipeData.init({
+        recipeId: { type: sequelize_1.DataTypes.INTEGER, primaryKey: true },
+        recipeName: { type: sequelize_1.DataTypes.STRING, allowNull: false },
+        recipeCreator: { type: sequelize_1.DataTypes.INTEGER, allowNull: false },
+        ingredient: { type: sequelize_1.DataTypes.INTEGER, allowNull: false },
+        customIngredient: { type: sequelize_1.DataTypes.INTEGER, allowNull: false },
+        popularityScore: { type: sequelize_1.DataTypes.INTEGER, allowNull: true },
+    }, { tableName: "RecipeData", sequelize });
+};
+exports.initRecipeData = initRecipeData;
+class CustomFoodData extends sequelize_1.Model {
+}
+const initCustomFoodData = (sequelize) => {
+    CustomFoodData.init({
+        foodId: { type: sequelize_1.DataTypes.INTEGER, primaryKey: true },
+        foodName: { type: sequelize_1.DataTypes.STRING, allowNull: false },
+        calories: { type: sequelize_1.DataTypes.INTEGER, allowNull: false },
+        sugar: { type: sequelize_1.DataTypes.INTEGER, allowNull: false },
+        carbohydrates: { type: sequelize_1.DataTypes.INTEGER, allowNull: false },
+        fat: { type: sequelize_1.DataTypes.INTEGER, allowNull: false },
+        protein: { type: sequelize_1.DataTypes.INTEGER, allowNull: false },
+        fibre: { type: sequelize_1.DataTypes.INTEGER, allowNull: false }
+    }, {
+        tableName: 'CustomFoodData',
+        sequelize
+    });
+};
+exports.initCustomFoodData = initCustomFoodData;
 const initialize = async () => {
     //await Token.sync();// creates a model if not already set up
-    await exports.User.sync();
-    console.log("Database models initialized");
+    try {
+        (0, exports.initUserModel)(exports.sequelize);
+        (0, exports.initCustomFoodData)(exports.sequelize);
+        initExcerisesModel(exports.sequelize);
+        (0, exports.initRecipeData)(exports.sequelize);
+        (0, exports.initUserLogsModel)(exports.sequelize);
+        initFoodDataModel(exports.sequelize);
+        await exports.sequelize.sync({ force: true }); // should init all models
+        //await User.sync({ force: true })
+        console.log("Database models initialized");
+    }
+    catch (err) {
+        console.log(err);
+        throw new Error("Could not initialize database models: " + err);
+    }
 };
 exports.initialize = initialize;
 /**
@@ -174,14 +269,14 @@ class BaseModel {
          * @returns if (err) wil crash, if not found will return not found, will return the table as object (How the function is Sequlize returns it)
          */
         this.findByPkey = async (primaryKey) => {
-            let theReturn = { err: null, result: "" };
+            let theReturn = { err: "Primary Key Not Found", result: null };
             try {
                 const result = await this.model.findByPk(primaryKey);
                 if (result === null) {
                     console.log("not found");
-                    theReturn.result = null;
                     return theReturn;
                 }
+                theReturn.err = null;
                 theReturn.result = result;
                 return theReturn;
             }

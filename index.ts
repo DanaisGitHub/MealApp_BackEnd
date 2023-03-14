@@ -22,10 +22,6 @@ app.use(passport.initialize());
 app.use(cors());
 
 
-// may have to do some vue.js set up asell 
-// Where Angular builds to - In the ./angular/angular.json file, you will find this configuration
-// at the property: projects.angular.architect.build.options.outputPath
-// When you run `ng build`, the output will go to the ./public directory
 
 
 app.use('/', api)// sending all routes that start with '/' to routes folder

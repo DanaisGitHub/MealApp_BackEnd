@@ -56,13 +56,13 @@ const errorHandler = (err: any, req: Req, res: any, next: any) => {
 router.get('/', (req: Req, res, next) => {
     res.send("HELLO")
 })
-router.get('/error', (req: Req, res, next) => {// how you error handle
+router.get('/error', (req: Req, res: Res, next: Next) => {// how you error handle
     res.send("There's was an error")
     next(errorHandler);
 
 })
 
-router.get('/dev/findAll', async (req: Req, res, next) => { //works
+router.get('/dev/findAll', async (req: Req, res: Res, next: Next) => { //works
     try {
         const result = await db.devFindAll();
         res.json({ err: false, message: result })
@@ -101,7 +101,7 @@ router.post('/signUp', async (req: Req, res, next) => { // semi works need to ch
     }
 })
 
-router.get('/login', async (req: Req, res: Res, next: Next) => { // NEED TO CHECK WHEN BUILT FRONT END PROPERLY
+router.post('/login', async (req: Req, res: Res, next: Next) => { // NEED TO CHECK WHEN BUILT FRONT END PROPERLY
     const email = req.body.email;
     const password = req.body.password;
     const refreshToken = issueJWT({ id: email }, true);
@@ -129,7 +129,7 @@ router.post('/logout', authMiddleware, async (req: Req, res: Res) => { // it thi
     await db.logout(decoded.id)
     res.clearCookie('accessToken', { maxAge: accessTime, httpOnly: true }) // if options are not exactly same as res.cookie then web browser won't clear
     res.clearCookie('refreshToken', { maxAge: refreshTime, httpOnly: true })
-    delete req.headers.authorization; // removes authorisation header
+    delete req.headers.authorization; // removes authorisation header // still need to check if this works
 
 })
 
@@ -139,36 +139,43 @@ router.get('/protected', authMiddleware, (req: Req, res: Res, next: Next) => { /
     res.status(200).json({ success: true, msg: "You are successfully authenticated to this route!" });
 })
 
-router.post('/refresh_token', async (req: Req, res: Res) => {
-    const refreshToken = req.cookies.refreshToken || req.body.refreshToken; // assuming correct
-    console.log(refreshToken)
-    //each user can store a refresh token as part of user, if empty ie logged out, 
-    //even if they have a valid refresh token it won't work 
-    // if refresh tokens match access token is given
-    jwt.verify(refreshToken, PUB_KEY, async (err: any, decoded: any) => {
-        if (err) {
-            console.log(err);
-            // somehow make the user login on front-end
-            return res.sendStatus(401).json({ err: err, message: `token incorrect` });
+router.post('/refresh_token', async (req: Req, res: Res) => {//////////////////////////////////////////////////////////Error/////////////////////////////////
+    try {
+        const refreshToken = req.cookies.refreshToken || req.body.refreshToken; // assuming correct
+        //console.log(refreshToken.token);
+        //each user can store a refresh token as part of user, if empty ie logged out, 
+        //even if they have a valid refresh token it won't work 
+        // if refresh tokens match access token is given
+        jwt.verify(refreshToken.token, PUB_KEY, async (err: any, decoded: any) => {
+            if (err) {
+                console.log("We have an Error" + err);
+                // somehow make the user login on front-end
+                return res.sendStatus(401).json({ err: err, message: `token incorrect` });
+            }
+           
+            const email: string = decoded.id;
+             //console.log(refreshToken.token)
+            //const  = decoded
+            
+            const refreshTokenSame = await db.isRefreshTokenSame({
+                id: email,
+                refreshToken: refreshToken.token // is comeing back as undefined
+            })
 
-        }
-        console.log(decoded)
-        const email: string = decoded.id;
+            if (!refreshTokenSame.result) {
+                res.sendStatus(401).json({ err: err, message: `token incorrect` });
+                return;
+            }
+            const accessToken = issueJWT({ id: email })
+            req.headers.authorization = `Bearer ${accessToken}`;
+            res.cookie("accessToken", accessToken, { maxAge: refreshTime, httpOnly: true })
+            res.json({ accessToken: accessToken });
 
-        const refreshTokenSame = await db.isRefreshTokenSame({
-            id: email,
-            refreshToken: refreshToken
-        })
-        if (!refreshTokenSame.result){
-            res.sendStatus(401).json({ err: err, message: `token incorrect` });
-            return;
-        }
-        const accessToken = issueJWT({ id: email })
-        req.headers.authorization = `Bearer ${accessToken}`;
-        res.cookie("accessToken", accessToken, { maxAge: refreshTime, httpOnly: true })
-        res.json({ accessToken: accessToken });
-
-    });
+        });
+    } catch (err) {
+        console.log(err)
+        res.sendStatus(401).json({ err: err, message: `token incorrect` });
+    }
 });
 
 

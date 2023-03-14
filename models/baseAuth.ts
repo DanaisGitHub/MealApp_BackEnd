@@ -1,3 +1,5 @@
+// The massive read lines on token.init() are not errors, works just fine but I don't know why it's doing that
+
 import {
     Association, DataTypes, HasManyAddAssociationMixin, HasManyCountAssociationsMixin,
     HasManyCreateAssociationMixin, HasManyGetAssociationsMixin, HasManyHasAssociationMixin,
@@ -22,30 +24,281 @@ export const sequelize = new Sequelize('boilerplate', 'boilerplate', 'password',
 });
 
 
+interface UserAttributes {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+    refreshToken?: string;
+}
 
-export const User = sequelize.define('Users', { // need to add tokens I think
-    firstName: { type: DataTypes.STRING, allowNull: false },
-    lastName: { type: DataTypes.STRING, allowNull: false },
-    email: { type: DataTypes.STRING, primaryKey: true },
-    password: { type: DataTypes.STRING, allowNull: false },
-    refreshToken:{ type:DataTypes.STRING, allowNull: true}
-});
+
+class User extends Model<UserAttributes> implements UserAttributes {
+    public firstName!: string;
+    public lastName!: string;
+    public email!: string;
+    public password!: string;
+    public refreshToken?: string;
+
+    public readonly createdAt!: Date;
+    public readonly updatedAt!: Date;
+}
+
+
+export const initUserModel = (sequelize: Sequelize) => { // so why does this not all the other definitions but the others do
+    User.init(
+        {
+            firstName: { type: DataTypes.STRING, allowNull: false, },
+            lastName: { type: DataTypes.STRING, allowNull: false, },
+            email: { type: DataTypes.STRING, primaryKey: true, },
+            password: { type: DataTypes.STRING, allowNull: false, },
+            refreshToken: { type: DataTypes.STRING(2048), allowNull: true, }
+        },
+        {
+            tableName: 'Users',
+            sequelize,
+        }
+    );
+};
+
+export { User };
+
+
+
+interface UserLogs {
+    date: Date;
+    email: number;//foreign key
+    foodId: number;//foreign key
+    foodIdMass: number;
+    customFoodId: number;//foreign key
+    customFoodIdMass: number;
+    recipeId: number;//foreign key
+    excerideId: number;//foreign key
+    excerideIdTime: number;
+}
+
+
+class UserLogs extends Model<UserLogs> implements UserLogs {
+    public date!: Date;
+    public email!: number;
+    public foodId!: number;
+    public foodIdMass!: number;
+    public customFoodId!: number;
+    public customFoodIdMass!: number;
+    public recipeId!: number;
+    public excerideId!: number;
+    public excerideIdTime!: number;
+
+    public readonly createdAt!: Date;
+    public readonly updatedAt!: Date;
+}
+
+
+export const initUserLogsModel = (sequelize: Sequelize) => {
+    UserLogs.init(
+        {
+            date: { type: DataTypes.DATE, allowNull: false },
+            email: { type: DataTypes.STRING, primaryKey: true },
+            foodId: { type: DataTypes.INTEGER, allowNull: false, },
+            foodIdMass: { type: DataTypes.INTEGER, allowNull: false, },
+            customFoodId: { type: DataTypes.INTEGER, allowNull: false, },
+            customFoodIdMass: { type: DataTypes.INTEGER, allowNull: false, },
+            recipeId: { type: DataTypes.INTEGER, allowNull: false, },
+            excerideId: { type: DataTypes.INTEGER, allowNull: false, },
+            excerideIdTime: { type: DataTypes.INTEGER, allowNull: false, },
+        },
+        {
+            tableName: "UserLogs", sequelize
+
+        });
+}
+
+
+
+
+
+
+interface Excerises {
+    excerideId: number; // primary key
+    excerideName: string;
+    caloriesPerKgPerMin: number;//really should be a float
+}
+
+
+
+class Excerises extends Model<Excerises> implements Excerises {
+    public excerideId!: number;
+    public excerideName!: string;
+    public caloriesPerKgPerMin!: number;
+
+    public readonly createdAt!: Date;
+    public readonly updatedAt!: Date;
+}
+
+
+const initExcerisesModel = (sequelize: Sequelize) => {
+    Excerises.init(
+        {
+            excerideId: { type: DataTypes.INTEGER, primaryKey: true },
+            excerideName: { type: DataTypes.STRING, allowNull: false },
+            caloriesPerKgPerMin: { type: DataTypes.INTEGER, allowNull: false },
+        },
+        { tableName: "Excerises", sequelize })
+};
+
+
+interface FoodData {
+    foodId: number; // primary key
+    foodName: string;
+    calories: number;
+    sugar: number;//really should be a float from here down
+    carbohydrates: number;
+    fat: number;
+    protein: number;
+    fibre: number;
+}
+
+
+class FoodData extends Model<FoodData> implements FoodData {
+    public foodId!: number;
+    public foodName!: string;
+    public calories!: number;
+    public sugar!: number;
+    public carbohydrates!: number;
+    public fat!: number;
+    public protein!: number;
+    public fibre!: number;
+
+    public readonly createdAt!: Date;
+    public readonly updatedAt!: Date;
+}
+
+
+const initFoodDataModel = (sequelize: Sequelize) => {
+    FoodData.init({
+        foodId: { type: DataTypes.INTEGER, primaryKey: true },
+        foodName: { type: DataTypes.STRING, allowNull: false },
+        calories: { type: DataTypes.INTEGER, allowNull: false },
+        sugar: { type: DataTypes.INTEGER, allowNull: false },
+        carbohydrates: { type: DataTypes.INTEGER, allowNull: false },
+        fat: { type: DataTypes.INTEGER, allowNull: false },
+        protein: { type: DataTypes.INTEGER, allowNull: false },
+        fibre: { type: DataTypes.INTEGER, allowNull: false }
+    },
+        { tableName: "FoodData", sequelize })
+}
+
+
+interface RecipeData {
+    recipeId: number; // primary key
+    recipeName: string;
+    recipeCreator: number;
+    ingredient: number;// foreign key to foodData
+    customIngredient: number;// foreign key to customFoodData
+    popularityScore?: number;
+}
+
+class RecipeData extends Model<RecipeData> implements RecipeData {
+    public recipeId!: number;
+    public recipeName!: string;
+    public recipeCreator!: number;
+    public ingredient!: number;
+    public customIngredient!: number;
+    public popularityScore?: number;
+
+    public readonly createdAt!: Date;
+    public readonly updatedAt!: Date;
+}
+
+export const initRecipeData = (sequelize: Sequelize) => {
+    RecipeData.init({
+        recipeId: { type: DataTypes.INTEGER, primaryKey: true },
+        recipeName: { type: DataTypes.STRING, allowNull: false },
+        recipeCreator: { type: DataTypes.INTEGER, allowNull: false },
+        ingredient: { type: DataTypes.INTEGER, allowNull: false },
+        customIngredient: { type: DataTypes.INTEGER, allowNull: false },
+        popularityScore: { type: DataTypes.INTEGER, allowNull: true },
+    },
+        { tableName: "RecipeData", sequelize })
+}
+
+
+
+interface CustomFoodData {
+    foodId: number; // primary key
+    foodName: string;
+    calories: number;
+    sugar: number;//really should be a float from here down
+    carbohydrates: number;
+    fat: number;
+    protein: number;
+    fibre: number;
+}
+
+
+class CustomFoodData extends Model<CustomFoodData> implements CustomFoodData {
+    public foodId!: number;
+    public foodName!: string;
+    public calories!: number;
+    public sugar!: number;
+    public carbohydrates!: number;
+    public fat!: number;
+    public protein!: number;
+    public fibre!: number;
+
+    public readonly createdAt!: Date;
+    public readonly updatedAt!: Date;
+}
+
+export const initCustomFoodData = (sequelize: Sequelize) => {
+    CustomFoodData.init(
+        {
+            foodId: { type: DataTypes.INTEGER, primaryKey: true },
+            foodName: { type: DataTypes.STRING, allowNull: false },
+            calories: { type: DataTypes.INTEGER, allowNull: false },
+            sugar: { type: DataTypes.INTEGER, allowNull: false },
+            carbohydrates: { type: DataTypes.INTEGER, allowNull: false },
+            fat: { type: DataTypes.INTEGER, allowNull: false },
+            protein: { type: DataTypes.INTEGER, allowNull: false },
+            fibre: { type: DataTypes.INTEGER, allowNull: false }
+        },
+        {
+            tableName: 'CustomFoodData',
+            sequelize
+        }
+    );
+};
+
+
 
 
 export const initialize = async () => {
     //await Token.sync();// creates a model if not already set up
-    await User.sync();
-    console.log("Database models initialized")
-}
+    try {
+        initUserModel(sequelize);
+        initCustomFoodData(sequelize);
+        initExcerisesModel(sequelize);
+        initRecipeData(sequelize);
+        initUserLogsModel(sequelize);
+        initFoodDataModel(sequelize);
+        await sequelize.sync({ force: true }) // should init all models
+        //await User.sync({ force: true })
+        console.log("Database models initialized")
+    }
+    catch (err) {
+        console.log(err)
+        throw new Error("Could not initialize database models: " + err)
 
+    }
+}
 
 
 /**
  * abstract Class that provides atomic action to the database
  */
 export abstract class BaseModel {
-    model:any
-    constructor(model:any){
+    model: any
+    constructor(model: any) {
         this.model = model
     }
     //START OF DDL
@@ -116,7 +369,7 @@ export abstract class BaseModel {
      * @param options What you want changing
      * @returns if Successful returns nothing  else throws ERROR
      */
-    protected update = async (model:any,options: any): Promise<StdReturn> => { // if any defalut values not filled, filled with defulat already set.
+    protected update = async (model: any, options: any): Promise<StdReturn> => { // if any defalut values not filled, filled with defulat already set.
         let theReturn: StdReturn = { err: null, result: "" };
         try {
             await model.update(options)
@@ -181,8 +434,8 @@ export abstract class BaseModel {
         }
     }
 
-    protected findOrCreate = async (options: any ): Promise<StdReturn> => {
-        let theReturn: StdReturn = { err: null, result: null};
+    protected findOrCreate = async (options: any): Promise<StdReturn> => {
+        let theReturn: StdReturn = { err: null, result: null };
         try {
             const { user, created } = await this.model.findByPk(options)
             theReturn.err = null;
@@ -199,15 +452,15 @@ export abstract class BaseModel {
      * @param primaryKey Is the Primary of table you want to find
      * @returns if (err) wil crash, if not found will return not found, will return the table as object (How the function is Sequlize returns it)
      */
-    protected findByPkey = async (primaryKey: any ): Promise<StdReturn> => {
-        let theReturn: StdReturn = { err: null, result: "" };
+    protected findByPkey = async (primaryKey: any): Promise<StdReturn> => {
+        let theReturn: StdReturn = { err: "Primary Key Not Found", result: null };
         try {
             const result = await this.model.findByPk(primaryKey)
             if (result === null) {
                 console.log("not found")
-                theReturn.result = null
                 return theReturn
             }
+            theReturn.err = null;
             theReturn.result = result
             return theReturn
         }
@@ -217,7 +470,7 @@ export abstract class BaseModel {
         }
     }
 
-    protected findAndCountAll = async (options: any ): Promise<StdReturn> => {
+    protected findAndCountAll = async (options: any): Promise<StdReturn> => {
         let theReturn: StdReturn = { err: null, result: null };
         try {
             const { count, rows } = await this.model.findAndCountAll(options)
@@ -258,6 +511,6 @@ export abstract class BaseModel {
 
 
 
-    
+
 }
 

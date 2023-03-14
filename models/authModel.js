@@ -91,7 +91,7 @@ class AuthModel extends baseAuth_1.BaseModel {
             }
             catch (err) {
                 console.log(err);
-                throw new Error("Problem when trying to find user func=(isAlreadyAUserObj)");
+                throw new Error(`Problem when trying to find user func=(isAlreadyAUserObj) ${err}}`);
             }
         };
         this.isAlreadyAUserBool = async (primaryKey) => {
@@ -133,14 +133,21 @@ class AuthModel extends baseAuth_1.BaseModel {
                 throw new Error("Couldn't compare passwords");
             }
         };
+        // 
         this.isRefreshTokenSame = async (obj) => {
             try {
                 const { id, refreshToken } = obj;
+                console.log(id);
                 const { err, result } = await this.isAlreadyAUserObj(id);
                 const user = result;
+                console.log("err =" + err);
                 if (err) {
                     console.log(err);
                     throw new Error(`Couldn't check if refresh tokens are the same: ${err}`);
+                }
+                if (user.refreshToken === null) {
+                    console.log("User doesnt have a refresh token");
+                    return { err: true, result: false };
                 }
                 if (refreshToken !== user.refreshToken) {
                     return { err: true, result: false };
@@ -148,7 +155,7 @@ class AuthModel extends baseAuth_1.BaseModel {
                 return { err: false, result: true };
             }
             catch (err) {
-                console.log();
+                console.log(err);
                 throw new Error(`coudn't check refresh tokens at this time ${err}`);
             }
         };

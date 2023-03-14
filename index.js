@@ -19,10 +19,6 @@ app.use(body_parser_1.default.json()); // we might not need
 app.use((0, cookie_parser_1.default)());
 app.use(passport_1.default.initialize());
 app.use((0, cors_1.default)());
-// may have to do some vue.js set up asell 
-// Where Angular builds to - In the ./angular/angular.json file, you will find this configuration
-// at the property: projects.angular.architect.build.options.outputPath
-// When you run `ng build`, the output will go to the ./public directory
 app.use('/', tempRoutes_1.default); // sending all routes that start with '/' to routes folder
 // start the server
 app.listen(5000, () => console.log("Server running on port " + 5000));
